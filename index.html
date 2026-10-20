@@ -3,112 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Gaussian Splatting Viewer</title>
+    <title>3D KSplat Viewer</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            width: 100vw;
-            height: 100vh;
-            overflow: hidden;
-            background-color: #0d0d11;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        #canvas-container {
-            width: 100%;
-            height: 100%;
-        }
-        #loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(13, 13, 17, 0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: #ffffff;
-            z-index: 10;
-            transition: opacity 0.5s ease;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid rgba(255, 255, 255, 0.1);
-            border-left-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        #ui-controls {
-            position: absolute;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            padding: 12px 24px;
-            border-radius: 30px;
-            color: #fff;
-            font-size: 14px;
-            pointer-events: none;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0d0d11; font-family: sans-serif; }
+        #canvas-container { width: 100%; height: 100%; }
+        #loading {
+            position: absolute; top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff; font-size: 16px; font-weight: bold;
+            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 12px;
+            pointer-events: none; text-align: center;
+            border: 1px solid rgba(255,255,255,0.1);
         }
     </style>
-
-    <!-- Import Library Standalone GaussianSplats3D -->
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@m33/gaussian-splats-3d@latest/build/gaussian-splats-3d.umd.min.js"></script>
+    <!-- Library pendukung khusus file .ksplat -->
+    <script src="https://cdn.jsdelivr.net/npm/@m33/gaussian-splats-3d@latest/build/gaussian-splats-3d.umd.min.js"></script>
 </head>
 <body>
 
-    <div id="loading-overlay">
-        <div class="spinner"></div>
-        <p id="loading-text">Memuat Model 3D...</p>
-    </div>
-
+    <div id="loading">Memuat Model .ksplat...</div>
     <div id="canvas-container"></div>
 
-    <div id="ui-controls">
-        Geser/Drag untuk memutar • Scroll/Pinch untuk zoom
-    </div>
-
     <script>
-        // 1. Tempelkan URL Vercel Blob Anda di sini
-        const splatUrl = 'https://dwxc7bnvmg7ycxoi.public.blob.vercel-storage.com/kitchen%20full%20%281%29.ksplat';
+        // MASUKKAN URL PUBLIC FILE .KSPLAT DARI VERCEL BLOB ANDA DI SINI
+        const ksplatUrl = 'https://dwxc7bnvmg7ycxoi.public.blob.vercel-storage.com/lohort.compressed.ksplat';
 
-        // 2. Inisialisasi Viewer
         const viewer = new GaussianSplats3D.Viewer({
             'rootElement': document.getElementById('canvas-container'),
             'cameraUp': [0, -1, 0],
             'initialCameraPosition': [0, 1.5, 3],
             'initialCameraLookAt': [0, 0, 0],
-            'halfPrecisionCovariancesOnGPU': false
+            'halfPrecisionCovariancesOnGPU': true // Efisiensi memori GPU di iPad
         });
 
-        // 3. Load File Splat
-        viewer.loadFile(splatUrl, {
-            'onProgress': (percent, statusText) => {
-                document.getElementById('loading-text').innerText = `Memuat Model: ${percent}%`;
-            }
+        // Load file .ksplat secara otomatis
+        viewer.addSplatScene(ksplatUrl, {
+            'format': GaussianSplats3D.SceneFormat.KSPLAT,
+            'showLoadingUI': false
         }).then(() => {
             viewer.start();
-            
-            // Sembunyikan Overlay
-            const overlay = document.getElementById('loading-overlay');
-            overlay.style.opacity = '0';
-            setTimeout(() => overlay.style.display = 'none', 500);
-        }).catch((error) => {
-            console.error('Error loading splat:', error);
-            document.getElementById('loading-text').innerText = 'Gagal memuat file! Periksa URL Vercel Blob Anda.';
+            document.getElementById('loading').style.display = 'none';
+        }).catch((err) => {
+            console.error('Error loading .ksplat:', err);
+            document.getElementById('loading').innerText = 'Gagal memuat file .ksplat!';
         });
     </script>
 </body>
