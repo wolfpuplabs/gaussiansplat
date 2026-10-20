@@ -15,7 +15,7 @@
             height: 100vh;
             overflow: hidden;
             background-color: #0d0d11;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         #canvas-container {
             width: 100%;
@@ -65,22 +65,14 @@
         }
     </style>
 
-    <!-- Import Map untuk Three.js dan Spark3D -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
-            "@spark3d/gaussian-splatting": "https://unpkg.com/spark3d@latest/dist/spark3d.module.js"
-        }
-    }
-    </script>
+    <!-- Import Library Standalone GaussianSplats3D -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@m33/gaussian-splats-3d@latest/build/gaussian-splats-3d.umd.min.js"></script>
 </head>
 <body>
 
     <div id="loading-overlay">
         <div class="spinner"></div>
-        <p id="loading-text">Memuat Model 3D dari Vercel Blob...</p>
+        <p id="loading-text">Memuat Model 3D...</p>
     </div>
 
     <div id="canvas-container"></div>
@@ -89,69 +81,34 @@
         Geser/Drag untuk memutar • Scroll/Pinch untuk zoom
     </div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { SplatMesh } from '@spark3d/gaussian-splatting';
+    <script>
+        // 1. Tempelkan URL Vercel Blob Anda di sini
+        const splatUrl = 'https://xxxxxx.public.blob.vercel-storage.com/scene.splat';
 
-        // 1. Setup Scene, Camera, & Renderer
-        const container = document.getElementById('canvas-container');
-        const scene = new THREE.Scene();
+        // 2. Inisialisasi Viewer
+        const viewer = new GaussianSplats3D.Viewer({
+            'rootElement': document.getElementById('canvas-container'),
+            'cameraUp': [0, -1, 0],
+            'initialCameraPosition': [0, 1.5, 3],
+            'initialCameraLookAt': [0, 0, 0],
+            'halfPrecisionCovariancesOnGPU': false
+        });
 
-        const camera = new THREE.PerspectiveCamera(
-            60, 
-            window.innerWidth / window.innerHeight, 
-            0.1, 
-            1000
-        );
-        camera.position.set(0, 1.5, 3);
-
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
-
-        // 2. Setup Controls
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-
-        // 3. Link ke File Vercel Blob Anda
-        // Tempelkan public URL dari Vercel Blob di sini
-        const splatUrl = 'https://dwxc7bnvmg7ycxoi.public.blob.vercel-storage.com/kitchen%20full.ply'; 
-
-        const splatMesh = new SplatMesh();
-        
-        splatMesh.load(splatUrl, (progress) => {
-            if (progress.lengthComputable) {
-                const percent = Math.round((progress.loaded / progress.total) * 100);
+        // 3. Load File Splat
+        viewer.loadFile(splatUrl, {
+            'onProgress': (percent, statusText) => {
                 document.getElementById('loading-text').innerText = `Memuat Model: ${percent}%`;
             }
         }).then(() => {
-            scene.add(splatMesh);
+            viewer.start();
             
-            // Sembunyikan loading overlay saat selesai
+            // Sembunyikan Overlay
             const overlay = document.getElementById('loading-overlay');
             overlay.style.opacity = '0';
             setTimeout(() => overlay.style.display = 'none', 500);
-        }).catch((err) => {
-            console.error('Error loading splat:', err);
-            document.getElementById('loading-text').innerText = 'Gagal memuat file 3D!';
-        });
-
-        // 4. Render Loop
-        function animate() {
-            requestAnimationFrame(animate);
-            controls.update();
-            renderer.render(scene, camera);
-        }
-        animate();
-
-        // 5. Responsive Resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+        }).catch((error) => {
+            console.error('Error loading splat:', error);
+            document.getElementById('loading-text').innerText = 'Gagal memuat file! Periksa URL Vercel Blob Anda.';
         });
     </script>
 </body>
