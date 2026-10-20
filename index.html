@@ -2,52 +2,94 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D KSplat Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>3D Splat Viewer</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { width: 100%; height: 100%; overflow: hidden; background: #0d0d11; font-family: sans-serif; }
-        #canvas-container { width: 100%; height: 100%; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #000; font-family: sans-serif; }
+        #application-canvas { width: 100%; height: 100%; display: block; }
         #loading {
             position: absolute; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             color: #fff; font-size: 16px; font-weight: bold;
-            background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 12px;
+            background: rgba(0,0,0,0.85); padding: 16px 28px; border-radius: 12px;
             pointer-events: none; text-align: center;
-            border: 1px solid rgba(255,255,255,0.1);
-            z-index: 100;
+            border: 1px solid rgba(255,255,255,0.15);
+            z-index: 10;
         }
     </style>
-    <!-- Library pendukung khusus .ksplat -->
-    <script src="https://cdn.jsdelivr.net/npm/@m33/gaussian-splats-3d@latest/build/gaussian-splats-3d.umd.js"></script>
+    <!-- PlayCanvas Engine versi terbaru yang stabil di iPad -->
+    <script src="https://code.playcanvas.com/playcanvas-stable.min.js"></script>
 </head>
 <body>
 
     <div id="loading">Memuat Model 3D...</div>
-    <div id="canvas-container"></div>
+    <canvas id="application-canvas"></canvas>
 
     <script>
-        const ksplatUrl = 'https://dwxc7bnvmg7ycxoi.public.blob.vercel-storage.com/lohort.compressed.ksplat';
+        const splatUrl = 'https://dwxc7bnvmg7ycxoi.public.blob.vercel-storage.com/lohort.compressed.ksplat';
 
-        // Inisialisasi Viewer dengan antarmuka langsung
-        const viewer = new GaussianSplats3D.Viewer({
-            'cameraUp': [0, -1, 0],
-            'initialCameraPosition': [0, 1.5, 3],
-            'initialCameraLookAt': [0, 0, 0],
-            'halfPrecisionCovariancesOnGPU': false,
-            'rootElement': document.getElementById('canvas-container')
+        const canvas = document.getElementById('application-canvas');
+        const app = new pc.Application(canvas, {
+            mouse: new pc.Mouse(canvas),
+            touch: new pc.TouchDevice(canvas),
+            graphicsDeviceOptions: { alpha: false, antialias: false }
         });
 
-        // Load scene secara efisien
-        viewer.addSplatScene(ksplatUrl, {
-            'progressiveLoad': true
-        }).then(() => {
-            viewer.start();
+        app.setCanvasResolution(pc.RESOLUTION_AUTO);
+        app.setCanvasFillMode(pc.FILLMODE_FILL_WINDOW);
+        app.start();
+
+        window.addEventListener('resize', () => app.resizeCanvas());
+
+        // Camera Setup
+        const camera = new pc.Entity('camera');
+        camera.addComponent('camera', {
+            clearColor: new pc.Color(0.05, 0.05, 0.08)
+        });
+        camera.setPosition(0, 1.5, 3);
+        camera.lookAt(0, 0, 0);
+        app.root.addChild(camera);
+
+        // Simple Touch/Mouse Controls untuk iPad
+        let isDragging = false;
+        let lastX = 0, lastY = 0;
+
+        const onStart = (x, y) => { isDragging = true; lastX = x; lastY = y; };
+        const onEnd = () => { isDragging = false; };
+        const onMove = (x, y) => {
+            if (!isDragging) return;
+            const dx = x - lastX;
+            const dy = y - lastY;
+            camera.rotateLocal(-dy * 0.2, -dx * 0.2, 0);
+            lastX = x; lastY = y;
+        };
+
+        canvas.addEventListener('touchstart', (e) => { if(e.touches.length === 1) onStart(e.touches[0].clientX, e.touches[0].clientY); });
+        canvas.addEventListener('touchend', onEnd);
+        canvas.addEventListener('touchmove', (e) => { if(e.touches.length === 1) onMove(e.touches[0].clientX, e.touches[0].clientY); });
+
+        canvas.addEventListener('mousedown', (e) => onStart(e.clientX, e.clientY));
+        canvas.addEventListener('mouseup', onEnd);
+        canvas.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+
+        // Load Asset Splat
+        const asset = new pc.Asset('splat', 'gsplat', { url: splatUrl });
+        
+        asset.on('load', () => {
+            const entity = new pc.Entity('splatEntity');
+            entity.addComponent('gsplat', { asset: asset });
+            app.root.addChild(entity);
             document.getElementById('loading').style.display = 'none';
-        }).catch((err) => {
-            console.error('Error:', err);
-            document.getElementById('loading').innerText = 'Gagal memuat file .ksplat!';
         });
+
+        asset.on('error', (err) => {
+            console.error('Error loading asset:', err);
+            document.getElementById('loading').innerText = 'Gagal memuat file 3D!';
+        });
+
+        app.assets.add(asset);
+        app.assets.load(asset);
     </script>
 </body>
 </html>
