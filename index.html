@@ -15,37 +15,37 @@
             background: rgba(0,0,0,0.8); padding: 15px 25px; border-radius: 12px;
             pointer-events: none; text-align: center;
             border: 1px solid rgba(255,255,255,0.1);
+            z-index: 100;
         }
     </style>
-    <!-- Library pendukung khusus file .ksplat -->
-    <script src="https://cdn.jsdelivr.net/npm/@m33/gaussian-splats-3d@latest/build/gaussian-splats-3d.umd.min.js"></script>
+    <!-- Library pendukung khusus .ksplat -->
+    <script src="https://cdn.jsdelivr.net/npm/@m33/gaussian-splats-3d@latest/build/gaussian-splats-3d.umd.js"></script>
 </head>
 <body>
 
-    <div id="loading">Memuat Model .ksplat...</div>
+    <div id="loading">Memuat Model 3D...</div>
     <div id="canvas-container"></div>
 
     <script>
-        // MASUKKAN URL PUBLIC FILE .KSPLAT DARI VERCEL BLOB ANDA DI SINI
         const ksplatUrl = 'https://dwxc7bnvmg7ycxoi.public.blob.vercel-storage.com/lohort.compressed.ksplat';
 
+        // Inisialisasi Viewer dengan antarmuka langsung
         const viewer = new GaussianSplats3D.Viewer({
-            'rootElement': document.getElementById('canvas-container'),
             'cameraUp': [0, -1, 0],
             'initialCameraPosition': [0, 1.5, 3],
             'initialCameraLookAt': [0, 0, 0],
-            'halfPrecisionCovariancesOnGPU': true // Efisiensi memori GPU di iPad
+            'halfPrecisionCovariancesOnGPU': false,
+            'rootElement': document.getElementById('canvas-container')
         });
 
-        // Load file .ksplat secara otomatis
+        // Load scene secara efisien
         viewer.addSplatScene(ksplatUrl, {
-            'format': GaussianSplats3D.SceneFormat.KSPLAT,
-            'showLoadingUI': false
+            'progressiveLoad': true
         }).then(() => {
             viewer.start();
             document.getElementById('loading').style.display = 'none';
         }).catch((err) => {
-            console.error('Error loading .ksplat:', err);
+            console.error('Error:', err);
             document.getElementById('loading').innerText = 'Gagal memuat file .ksplat!';
         });
     </script>
